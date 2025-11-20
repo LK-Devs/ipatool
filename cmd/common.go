@@ -59,6 +59,9 @@ func newCookieJar(machine machine.Machine) http.CookieJar {
 	}))
 }
 
+//go:build !ios
+// +build !ios
+
 // newKeychain returns a new keychain instance.
 func newKeychain(machine machine.Machine, logger log.Logger, interactive bool) keychain.Keychain {
 	ring := util.Must(keyring.Open(keyring.Config{

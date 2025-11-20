@@ -47,3 +47,7 @@ require (
 	gopkg.in/retry.v1 v1.0.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+// Exclude go-keychain for iOS builds to avoid macOS keychain dependencies
+// This is handled via build tags in cmd/common.go and cmd/common_ios.go
+// replace github.com/99designs/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4

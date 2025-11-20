@@ -1,0 +1,83 @@
+name: Build iOS Rootless
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ios-rootless.yml'
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/build-ios-rootless.yml'
+      - '**/*.go'
+      - 'go.mod'
+      - 'go.sum'
+
+jobs:
+  build_ios_rootless:
+    name: Build for iOS Rootless
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [arm64, arm64e]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.23.0"
+          cache: true
+
+      - name: Get iOS SDK and compiler paths
+        id: ios_config
+        run: |
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          CC_PATH=$(xcrun --sdk iphoneos --find clang)
+          CXX_PATH=$(xcrun --sdk iphoneos --find clang++)
+          echo "SDK_PATH=$SDK_PATH" >> $GITHUB_OUTPUT
+          echo "CC_PATH=$CC_PATH" >> $GITHUB_OUTPUT
+          echo "CXX_PATH=$CXX_PATH" >> $GITHUB_OUTPUT
+          echo "iOS SDK: $SDK_PATH"
+          echo "CC: $CC_PATH"
+          echo "CXX: $CXX_PATH"
+
+      - name: Build for iOS (${{ matrix.arch }})
+        env:
+          GOOS: ios
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+        run: |
+          # Build with CGO disabled to avoid macOS keychain dependencies
+          # The build tags in cmd/common.go and cmd/common_ios.go will handle iOS-specific code
+          go build -ldflags="-s -w" -o ipatool-ios-rootless-${{ matrix.arch }} .
+
+      - name: Verify binary
+        run: |
+          file ipatool-ios-rootless-${{ matrix.arch }}
+          ls -lh ipatool-ios-rootless-${{ matrix.arch }}
+
+      - name: Upload artifact (arm64)
+        if: matrix.arch == 'arm64'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipatool-ios-rootless-arm64
+          path: ipatool-ios-rootless-arm64
+          retention-days: 30
+
+      - name: Upload artifact (arm64e)
+        if: matrix.arch == 'arm64e'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipatool-ios-rootless-arm64e
+          path: ipatool-ios-rootless-arm64e
+          retention-days: 30
+
